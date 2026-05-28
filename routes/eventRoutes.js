@@ -10,12 +10,9 @@ const router = express.Router();
 
 // Configure multer for file uploads
 const upload = multer({
-  dest: 'uploads/',
   storage: multer.diskStorage({
     destination: (req, file, cb) => cb(null, 'uploads/'),
-    filename: (req, file, cb) => {
-      cb(null, Date.now() + '-' + file.originalname);
-    },
+    filename: (req, file, cb) => cb(null, Date.now() + '-' + file.originalname),
   }),
 });
 
@@ -37,16 +34,14 @@ router.post(
   async (req, res) => {
     try {
       const { title, description } = req.body;
-      const imagePath = req.file ? getImageUrl(req.file.filename) : null;
-
-      if (!title || !description || !imagePath) {
+      if (!title || !description || !req.file) {
         return res.status(400).json({ error: 'Title, description, and image are required' });
       }
 
       const event = new Event({
         title,
         description,
-        image: imagePath, // ✅ now absolute URL
+        image: getImageUrl(req.file.filename), // ✅ absolute URL
         createdBy: req.user.id,
       });
 
@@ -83,6 +78,7 @@ router.get('/:id', authMiddleware, async (req, res) => {
 
     res.json(event);
   } catch (err) {
+    console.error('Event fetch error:', err);
     res.status(500).json({ error: 'Failed to fetch event' });
   }
 });
@@ -97,9 +93,7 @@ router.post('/:id/react', authMiddleware, async (req, res) => {
     const existingReaction = event.reactedBy.find(r => r.user.toString() === req.user.id);
 
     if (existingReaction) {
-      if (existingReaction.type !== type) {
-        existingReaction.type = type;
-      }
+      existingReaction.type = type; // ✅ update reaction type
     } else {
       event.reactedBy.push({ user: req.user.id, type });
     }
@@ -111,6 +105,7 @@ router.post('/:id/react', authMiddleware, async (req, res) => {
     await event.save();
     res.json(event);
   } catch (err) {
+    console.error('Reaction error:', err);
     res.status(500).json({ error: 'Failed to react' });
   }
 });
@@ -124,14 +119,15 @@ router.post('/:id/comment', authMiddleware, async (req, res) => {
 
     event.comments.push({
       user: req.user.name,
-      avatar: req.user.avatar || `${getImageUrl('default-avatar.png')}`,
+      avatar: req.user.avatar || getImageUrl('default-avatar.png'),
       text,
-      createdAt: new Date()
+      createdAt: new Date(),
     });
 
     await event.save();
     res.json(event);
   } catch (err) {
+    console.error('Comment error:', err);
     res.status(500).json({ error: 'Failed to comment' });
   }
 });
