@@ -7,7 +7,17 @@ const path = require('path');
 require('dotenv').config();
 
 const app = express();
-app.use(cors());
+
+// ✅ CORS configuration — allow your Vercel frontend
+app.use(cors({
+  origin: [
+    'https://aclceventspot-frontend.vercel.app', // your live frontend
+    'http://localhost:3000'                      // for local testing
+  ],
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH'],
+  credentials: true
+}));
+
 app.use(express.json());
 
 // ✅ Serve uploaded images
@@ -19,11 +29,9 @@ app.get('/api/hello', (req, res) => {
 });
 
 // Connect to MongoDB
-console.log("Mongo URI:", process.env.MONGO_URI);
+console.log('Mongo URI:', process.env.MONGO_URI);
 
-mongoose.connect(process.env.MONGO_URI, {
-  family: 4 // forces IPv4, avoids SRV DNS issues
-})
+mongoose.connect(process.env.MONGO_URI, { family: 4 })
   .then(() => console.log('MongoDB connected'))
   .catch(err => console.error('MongoDB error:', err));
 
@@ -44,7 +52,7 @@ app.use('/api/users', userRoutes);
 app.use('/api/blogs', blogRoutes);
 
 // ✅ Middleware imports
-const authMiddleware = require('./middleware/auth');   // ✅ consistent import
+const authMiddleware = require('./middleware/auth');
 const roleMiddleware = require('./middleware/role');
 
 // Optional helper (already covered by authMiddleware)
