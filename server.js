@@ -8,15 +8,23 @@ require('dotenv').config();
 
 const app = express();
 
-// ✅ CORS configuration — allow your Vercel frontend
-app.use(cors({
-  origin: [
-    'https://aclceventspot-frontend.vercel.app', // your live frontend
-    'http://localhost:3000'                      // for local testing
-  ],
-  methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH'],
-  credentials: true
-}));
+// ✅ CORS configuration — allow your Vercel frontend and local dev
+app.use(
+  cors({
+    origin: [
+      'https://aclceventspot-frontend.vercel.app', // live frontend
+      'https://aclceventspot-frontend-git-main-fondasystem15-s-projects.vercel.app', // Vercel preview builds
+      'http://localhost:3000', // local dev
+      'http://localhost:3001'  // alternate local port
+    ],
+    methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Authorization'],
+    credentials: true,
+  })
+);
+
+// ✅ Handle preflight requests explicitly
+app.options('*', cors());
 
 app.use(express.json());
 
@@ -31,9 +39,10 @@ app.get('/api/hello', (req, res) => {
 // Connect to MongoDB
 console.log('Mongo URI:', process.env.MONGO_URI);
 
-mongoose.connect(process.env.MONGO_URI, { family: 4 })
+mongoose
+  .connect(process.env.MONGO_URI, { family: 4 })
   .then(() => console.log('MongoDB connected'))
-  .catch(err => console.error('MongoDB error:', err));
+  .catch((err) => console.error('MongoDB error:', err));
 
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
@@ -72,7 +81,7 @@ const authenticateToken = (req, res, next) => {
 app.get('/api/secure-data', authMiddleware, (req, res) => {
   res.json({
     message: 'This is protected data!',
-    user: req.user
+    user: req.user,
   });
 });
 
@@ -80,7 +89,7 @@ app.get('/api/secure-data', authMiddleware, (req, res) => {
 app.get('/api/admin-dashboard', authMiddleware, roleMiddleware('admin'), (req, res) => {
   res.json({
     message: 'Welcome to the admin dashboard',
-    user: req.user
+    user: req.user,
   });
 });
 
@@ -88,6 +97,6 @@ app.get('/api/admin-dashboard', authMiddleware, roleMiddleware('admin'), (req, r
 app.get('/api/user-dashboard', authMiddleware, roleMiddleware('user'), (req, res) => {
   res.json({
     message: 'Welcome to the user dashboard',
-    user: req.user
+    user: req.user,
   });
 });
