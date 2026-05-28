@@ -3,7 +3,7 @@ const router = express.Router();
 const multer = require('multer');
 const path = require('path');
 const User = require('../models/User');
-const authMiddleware = require('../middleware/auth');   // ✅ consistent import
+const authMiddleware = require('../middleware/auth'); // ✅ consistent import
 
 // Configure multer for avatar uploads
 const storage = multer.diskStorage({
@@ -20,8 +20,11 @@ router.post('/avatar', authMiddleware, upload.single('avatar'), async (req, res)
       return res.status(404).json({ error: 'User not found' });
     }
 
-    user.avatar = `/uploads/avatars/${req.file.filename}`;
+    // ✅ Use absolute URL for Render deployment
+    const baseURL = process.env.BASE_URL || 'https://aclceventspot-backend.onrender.com';
+    user.avatar = `${baseURL}/uploads/avatars/${req.file.filename}`;
     await user.save();
+
     res.json({ avatar: user.avatar });
   } catch (err) {
     console.error('Avatar upload error:', err);
