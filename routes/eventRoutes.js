@@ -1,7 +1,7 @@
 // backend/routes/eventRoutes.js
 const express = require('express');
 const Event = require('../models/Event');
-const authMiddleware = require("../middleware/auth");   // ✅ consistent import
+const authMiddleware = require("../middleware/auth");
 const roleCheck = require('../middleware/roleCheck');
 const multer = require('multer');
 const path = require('path');
@@ -19,7 +19,16 @@ const upload = multer({
   }),
 });
 
-// Admin/Superadmin can create events
+// ✅ Helper: build full image URL for production
+const getImageUrl = (filename) => {
+  const baseUrl =
+    process.env.NODE_ENV === 'production'
+      ? 'https://aclceventspot-backend.onrender.com'
+      : 'http://localhost:5000';
+  return `${baseUrl}/uploads/${filename}`;
+};
+
+// ✅ Admin/Superadmin can create events
 router.post(
   '/',
   authMiddleware,
@@ -28,7 +37,7 @@ router.post(
   async (req, res) => {
     try {
       const { title, description } = req.body;
-      const imagePath = req.file ? `/uploads/${req.file.filename}` : null;
+      const imagePath = req.file ? getImageUrl(req.file.filename) : null;
 
       if (!title || !description || !imagePath) {
         return res.status(400).json({ error: 'Title, description, and image are required' });
@@ -37,7 +46,7 @@ router.post(
       const event = new Event({
         title,
         description,
-        image: imagePath,
+        image: imagePath, // ✅ now absolute URL
         createdBy: req.user.id,
       });
 
@@ -50,7 +59,7 @@ router.post(
   }
 );
 
-// Anyone can list events
+// ✅ Anyone can list events
 router.get('/', async (req, res) => {
   try {
     const events = await Event.find().sort({ createdAt: -1 });
@@ -60,7 +69,7 @@ router.get('/', async (req, res) => {
   }
 });
 
-// Increment views only once per user
+// ✅ Increment views only once per user
 router.get('/:id', authMiddleware, async (req, res) => {
   try {
     const event = await Event.findById(req.params.id);
@@ -78,7 +87,7 @@ router.get('/:id', authMiddleware, async (req, res) => {
   }
 });
 
-// Reactions (only one per user)
+// ✅ Reactions (only one per user)
 router.post('/:id/react', authMiddleware, async (req, res) => {
   try {
     const { type } = req.body;
@@ -106,7 +115,7 @@ router.post('/:id/react', authMiddleware, async (req, res) => {
   }
 });
 
-// Comments
+// ✅ Comments
 router.post('/:id/comment', authMiddleware, async (req, res) => {
   try {
     const { text } = req.body;
@@ -115,7 +124,7 @@ router.post('/:id/comment', authMiddleware, async (req, res) => {
 
     event.comments.push({
       user: req.user.name,
-      avatar: req.user.avatar || '/uploads/default-avatar.png',
+      avatar: req.user.avatar || `${getImageUrl('default-avatar.png')}`,
       text,
       createdAt: new Date()
     });
@@ -127,7 +136,7 @@ router.post('/:id/comment', authMiddleware, async (req, res) => {
   }
 });
 
-// Delete event (Admins/Superadmins only)
+// ✅ Delete event (Admins/Superadmins only)
 router.delete('/:id', authMiddleware, roleCheck(['admin', 'superadmin']), async (req, res) => {
   try {
     const event = await Event.findById(req.params.id);
